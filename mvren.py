@@ -4,28 +4,11 @@
 import sys
 import os
 import re
-
-# list of regexes
-regs = [
-    [r'(19\d\d)', r'(\1)'],
-    [r'(20\d\d)', r'(\1)'],
-    [r'\[.*?\]', ''],
-    [r'bdrip(?i)', ''],
-    [r'french(?i)', ''],
-    [r'x264.*(?i)', ''],
-    [r'dvdrip.*(?i)', ''],
-    [r'xvid.*(?i)', ''],
-    [r'brrip.*(?i)', ''],
-    [r'\.', ' '],
-]
-
-# useful debug to watch for regexes substitutions
-debug = False
-if os.environ.get('MVRDBG') is not None:
-    debug = True
+import glob
+import argparse
 
 # function to rename movie
-def rename_movie(fn: str) -> str:
+def rename_movie(fn: str, debug: bool) -> str:
 
     # save path name of the original file
     file_path = os.path.dirname(fn)
@@ -50,17 +33,58 @@ def rename_movie(fn: str) -> str:
     return('{0}/{1}'.format(file_path, new_name))
 
 
+
+# list of regexes to be substituted
+regs = [
+    [r'(19\d\d)', r'(\1)'],
+    [r'(20\d\d)', r'(\1)'],
+    [r'\[.*?\]', ''],
+    [r'(?i)bdrip', ''],
+    [r'(?i)french', ''],
+    [r'(?i)ita', ''],
+    [r'(?i)episodio', ''],
+    [r'(?i)x264.*', ''],
+    [r'(?i)dvdrip.*', ''],
+    [r'(?i)xvid.*', ''],
+    [r'(?i)brrip.*', ''],
+    [r'(?i)720p', ''],
+    [r'(?i)hdtv.*', ''],
+    [r'_', ' '],
+    [r'\.', ' '],
+]
+
+# manage arguments
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-d', '--debug', action='store_true',
+                    default=False,
+                    dest='debug',
+                    help='watch regexes substitutions')
+
+parser.add_argument('-f', 
+                    dest='files',
+                    help='List of files',
+                    nargs='*')                                                  
+
+args = parser.parse_args()
+
+# if we're on Linux or any Unix shell, glob expansion is made before the script is called. No need to call glob function.
+if os.name == 'posix':
+    files_to_rename = args.files
+elif os.name == 'nt':
+    files_to_rename = glob.glob(args.files)
+
 # for each argument (which is supposed to be a file name), get new name and rename file
-for fn in sys.argv[1:]:
+for fn in files_to_rename:
     # rename file
-    new_name = rename_movie(fn)
+    new_name = rename_movie(fn, args.debug)
 
     # rename file if any
     answer = input('Do you want to rename "{0}" by "{1}" ? (Y/N): '.format(fn, new_name))
     if answer.lower().startswith('n'):
         continue
     else:
-        if not debug:
+        if not args.debug:
             os.rename(fn, new_name)
 
 
